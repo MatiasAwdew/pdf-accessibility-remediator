@@ -1,0 +1,53 @@
+# Copy to remediator.toml and change what you need. Anything omitted uses the default.
+language = "en-US"
+pdfua_identifier = true
+
+[autotag]
+enabled = true
+retag_tagged = false         # true = always re-tag with Adobe, even if the PDF has tags
+shift_headings = false
+save_adobe_report = false    # also download Adobe's Excel tagging report
+keep_intermediate = true     # keep <name>_autotagged.pdf
+region = "default"           # default | us | eu
+timeout_seconds = 600
+
+[headings]
+mode = "ai"                  # ai | fontsize | normalize | off
+first_heading_h1 = true
+suggest_paragraph_headings = true
+auto_promote_when_ai_agrees = false  # true = tag missed headings automatically
+
+[figures]
+ai_alt_text = true
+decorative_max_area = 400.0  # pt^2
+
+[bookmarks]
+enabled = true
+min_pages = 2
+max_level = 3
+replace_existing = false
+
+[links]
+wrap_untagged_annotations = true
+fill_contents = true
+
+[tables]
+promote_first_row_headers = true
+data_row_headers = "demote"  # demote | keep
+pad_short_rows = true
+fill_scope = true
+add_summary = true
+
+[cleanup]
+remove_empty_elements = true
+ensure_document_root = true
+fix_list_structure = true
+artifact_untagged_paths = true
+
+[learning]
+record_decisions = true      # log review decisions on `apply`
+use_as_examples = true       # show past decisions to Claude
+
+[ai]
+model = "claude-opus-5"      # claude-sonnet-5 is cheaper for large batches
+max_figures = 200

@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/out/
+*_accessible*.pdf
+*_report.json
+*_report.html
+*_review.json
+*_check*
+*_autotagged.pdf
+*_autotag_report.xlsx
+benchmark/
+realdocs/
+
+# Never commit documents or learning data (work files stay local / on the server).
+*.pdf
+*.doc
+*.docx
+*.xlsx
+*.pptx
+*.jsonl
+*.csv
+jobs/

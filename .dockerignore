@@ -1,0 +1,10 @@
+.git
+__pycache__
+*.pyc
+.pytest_cache
+benchmark/
+realdocs/
+tests/
+*.pdf
+*_report.*
+*_review.json

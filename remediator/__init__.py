@@ -1,0 +1,1 @@
+"""PDF accessibility remediation assistant."""

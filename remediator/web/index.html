@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Remediator</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+:root {
+  --bg: #f5f7fb; --surface: #ffffff; --surface-2: #f7f9fc; --text: #0f172a; --muted: #5b6474;
+  --border: #e2e7ef; --border-strong: #cfd7e3; --accent: #0b5cad; --accent-hover: #094c8f;
+  --accent-weak: #e8f1fb; --accent-text: #ffffff; --focus: #0b5cad;
+  --ok: #15803d; --ok-bg: #e7f6ec; --warn: #9a5b00; --warn-bg: #fff4dc; --bad: #b42318; --bad-bg: #fdecea;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 4px 16px rgba(15, 23, 42, .06);
+  --radius: 14px; --radius-sm: 9px;
+}
+:root[data-theme="dark"] {
+  /* dark mode is opt-in; secondary text stays near-white (no grey on black) */
+  --bg: #0f141b; --surface: #182029; --surface-2: #1f2833; --text: #ffffff; --muted: #dde3ea;
+  --border: #2e3946; --border-strong: #41505f; --accent: #6db3ff; --accent-hover: #93c6ff;
+  --accent-weak: #16304f; --accent-text: #06101b; --focus: #93c6ff;
+  --ok: #6ee7a0; --ok-bg: #11301f; --warn: #fcd34d; --warn-bg: #322711; --bad: #fca5a5; --bad-bg: #3a1a1c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; font: 15px/1.55 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+       background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button, .btn { font: inherit; font-weight: 600; font-size: 14px; border-radius: var(--radius-sm); cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 9px 16px;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: background .15s, border-color .15s; }
+button:hover, .btn:hover { background: var(--surface-2); }
+.btn.primary, button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.primary:hover, button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 6px 10px; }
+button.ghost:hover { background: var(--surface-2); color: var(--text); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+svg.i { width: 18px; height: 18px; flex: none; }
+
+/* ---------- top bar ---------- */
+.topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 18px; padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.brand img { width: 28px; height: 28px; }
+.pills { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--ok); } .dot.off { background: var(--warn); }
+
+/* ---------- shell ---------- */
+.shell { display: grid; grid-template-columns: 290px 1fr; min-height: calc(100vh - 57px); }
+@media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid var(--border); } }
+.sidebar { border-right: 1px solid var(--border); background: var(--surface); padding: 18px 14px; display: flex; flex-direction: column; gap: 12px; }
+.sidebar h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 6px 0; }
+.search { width: 100%; font: inherit; font-size: 14px; padding: 9px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.hist a { display: block; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text); text-decoration: none; }
+.hist a:hover { background: var(--surface-2); }
+.hist a[aria-current="page"] { background: var(--accent-weak); }
+.hist .name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.hist .sub { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.empty-hist { color: var(--muted); font-size: 13px; padding: 8px 10px; }
+
+main { padding: 28px clamp(16px, 4vw, 44px) 120px; max-width: 1180px; width: 100%; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+/* ---------- badges ---------- */
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.badge.ok { color: var(--ok); background: var(--ok-bg); } .badge.warn { color: var(--warn); background: var(--warn-bg); }
+.badge.bad { color: var(--bad); background: var(--bad-bg); } .badge.neutral { color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); }
+.chip { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; text-transform: capitalize; }
+
+/* ---------- home ---------- */
+.hero { padding: 34px; }
+.hero h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 6px; }
+.hero p.lead { color: var(--muted); margin: 0 0 24px; font-size: 15.5px; }
+.drop { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 46px 20px; text-align: center; cursor: pointer;
+  background: var(--surface-2); transition: border-color .15s, background .15s, transform .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-weak); }
+.drop.over { transform: scale(1.01); }
+.drop .big { width: 54px; height: 54px; color: var(--accent); margin-bottom: 10px; }
+.drop strong { display: block; font-size: 18px; margin-bottom: 4px; }
+.drop span { color: var(--muted); }
+.drop .btn { margin-top: 16px; color: var(--text); }
+.opts { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 20px; }
+.toggle { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.toggle input { appearance: none; width: 40px; height: 23px; border-radius: 999px; background: var(--border-strong); position: relative; cursor: pointer; transition: background .15s; margin: 0; flex: none; }
+.toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.toggle input:checked { background: var(--accent); }
+.toggle input:checked::after { transform: translateX(17px); }
+.toggle small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 18px; }
+.step { padding: 16px 18px; }
+.step .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  background: var(--accent-weak); color: var(--accent); margin-bottom: 8px; }
+.step b { display: block; margin-bottom: 2px; } .step span { color: var(--muted); font-size: 13.5px; }
+
+/* ---------- working ---------- */
+.working { padding: 40px 34px; text-align: center; }
+.spinner { width: 42px; height: 42px; border-radius: 50%; border: 4px solid var(--accent-weak); border-top-color: var(--accent);
+  animation: spin .9s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bar { height: 6px; border-radius: 999px; background: var(--accent-weak); overflow: hidden; max-width: 420px; margin: 20px auto 0; }
+.bar i { display: block; height: 100%; width: 35%; border-radius: 999px; background: var(--accent); animation: slide 1.4s ease-in-out infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+@media (prefers-reduced-motion: reduce) { .spinner, .bar i { animation: none; } }
+
+/* ---------- results ---------- */
+.doc-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.doc-head h1 { font-size: 23px; letter-spacing: -.02em; margin: 0; word-break: break-word; }
+.doc-head .meta { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+.verdict { margin-left: auto; padding: 12px 18px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); text-align: right; }
+.verdict .big { font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+.verdict.ok { border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); }
+.verdict.bad { border-color: color-mix(in srgb, var(--bad) 40%, var(--border)); }
+.verdict.ok .big { color: var(--ok); } .verdict.bad .big { color: var(--bad); } .verdict.neutral .big { color: var(--muted); }
+.verdict small { display: block; color: var(--muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.notice { border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
+.notice.ok { background: var(--ok-bg); color: var(--ok); } .notice.bad { background: var(--bad-bg); color: var(--bad); }
+.notice.warn { background: var(--warn-bg); color: var(--warn); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { padding: 16px 18px; }
+.stat b { display: block; font-size: 28px; line-height: 1.1; letter-spacing: -.02em; }
+.stat span { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.stat.ok b { color: var(--ok); } .stat.warn b { color: var(--warn); } .stat.bad b { color: var(--bad); }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 18px; overflow-x: auto; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); padding: 10px 14px; }
+.tabs button:hover { background: transparent; color: var(--text); }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.count { font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 0 7px; color: var(--muted); font-weight: 600; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.filters button { padding: 5px 12px; border-radius: 999px; font-size: 13px; text-transform: capitalize; }
+.filters button[aria-pressed="true"] { background: var(--accent-weak); border-color: var(--accent); color: var(--accent); }
+
+.group { margin-bottom: 28px; }
+.group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.group-head h3 { margin: 0; font-size: 16px; text-transform: capitalize; }
+.group-head .spacer { flex: 1; }
+.item { padding: 16px 18px; margin-bottom: 10px; display: grid; gap: 16px; }
+.item.with-img { grid-template-columns: minmax(160px, 240px) 1fr; }
+@media (max-width: 700px) { .item.with-img { grid-template-columns: 1fr; } }
+.item .preview { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px; align-self: start;
+  display: grid; place-items: center; min-height: 120px; }
+.item .preview img { max-width: 100%; max-height: 220px; display: block; }
+.item .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.item .msg { font-size: 14.5px; }
+.item .quote { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 12px 0 5px; }
+.field textarea, .field select { width: 100%; font: inherit; font-size: 14.5px; padding: 9px 11px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); }
+.field textarea { min-height: 64px; resize: vertical; }
+.field select { width: auto; min-width: 140px; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; margin: 12px 0 0; padding: 0; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+.seg span { display: inline-block; padding: 7px 16px; font-size: 13.5px; font-weight: 600; color: var(--muted); border-right: 1px solid var(--border-strong); }
+.seg label:last-of-type span { border-right: 0; }
+.seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: -3px; }
+.seg input[value="accept"]:checked + span { background: var(--ok-bg); color: var(--ok); }
+.seg input[value="reject"]:checked + span { background: var(--bad-bg); color: var(--bad); }
+.seg input[value="skip"]:checked + span { background: var(--surface-2); color: var(--text); }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: 0; }
+.list li svg { color: var(--ok); margin-top: 2px; }
+.empty { color: var(--muted); padding: 30px; text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; }
+.empty svg { color: var(--ok); }
+
+.actionbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px clamp(16px, 4vw, 44px); background: var(--surface); box-shadow: 0 -4px 16px rgba(15,23,42,.06);
+  border-top: 1px solid var(--border); }
+.actionbar .summary { color: var(--muted); font-size: 13.5px; margin-right: auto; }
+@media (min-width: 901px) { .actionbar { left: 290px; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img src="/favicon.ico" alt="">PDF Remediator</div>
+  <div class="pills" id="pills" aria-label="Connections"></div>
+  <button class="ghost" id="theme" aria-pressed="false" title="Switch between white and dark">
+    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Dark mode</span></button>
+</header>
+
+<div class="shell">
+  <nav class="sidebar" aria-label="Documents">
+    <button class="primary" id="new-doc"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New document</button>
+    <label class="sr" for="search">Search recent documents</label>
+    <input class="search" id="search" type="search" placeholder="Search documents">
+    <h2 id="recent-h">Recent</h2>
+    <ul class="hist" id="hist" aria-labelledby="recent-h"></ul>
+  </nav>
+
+  <main id="main" tabindex="-1">
+    <div id="view" aria-live="polite"></div>
+  </main>
+</div>
+<div class="actionbar" id="actionbar" hidden></div>
+<input type="file" id="file" accept="application/pdf,.pdf" class="sr" tabindex="-1" aria-hidden="true">
+
+<script>
+const H = { "X-Remediator": "1" };
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const view = $("#view"), bar = $("#actionbar");
+let current = null, poll = null, jobsCache = [], state = { tab: "review", filter: "all" };
+const prefs = (() => { try { return JSON.parse(localStorage.getItem("prefs") || "{}"); } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem("prefs", JSON.stringify(prefs)); } catch {} };
+function applyTheme() {
+  const dark = prefs.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const b = document.getElementById("theme");
+  if (b) { b.setAttribute("aria-pressed", String(dark)); b.querySelector("span").textContent = dark ? "White mode" : "Dark mode"; }
+}
+applyTheme();
+document.getElementById("theme").addEventListener("click", () => { prefs.theme = prefs.theme === "dark" ? "light" : "dark"; savePrefs(); applyTheme(); });
+
+const ICON = {
+  upload: '<svg class="big" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6m-3 3 3-3 3 3"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>',
+  alert: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 8v5m0 3.5v.5"/><circle cx="12" cy="12" r="9"/></svg>',
+  down: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>',
+  folder: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  doc: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+};
+
+let hosted = false;
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (r.status === 401) { location.href = "/login"; throw new Error("Please sign in"); }
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+  return r.json();
+}
+
+// ---------------------------------------------------------------- chrome
+async function loadStatus() {
+  const s = await api("/api/status");
+  const k = s.keys;
+  const pill = (on, label, title) => `<span class="pill" title="${esc(title)}"><span class="dot ${on ? "on" : "off"}" aria-hidden="true"></span>${esc(label)}<span class="sr">: ${on ? "ready" : "not set up"}</span></span>`;
+  $("#pills").innerHTML =
+    pill(k.anthropic_api_key !== "missing", "Claude AI", k.anthropic_api_key !== "missing" ? "Connected: alt text, titles, headings, summaries" : "No API key: run python remediate.py setup") +
+    pill(s.verapdf, "PDF/UA check", s.verapdf ? "veraPDF installed: every result is validated automatically" : "veraPDF not installed (see README)") +
+    pill(k.adobe_client_secret !== "missing", "Adobe AutoTag", k.adobe_client_secret !== "missing" ? "Adobe API connected" : "Not set up: untagged PDFs are tagged locally");
+  hosted = !!s.hosted;
+  if (hosted && !document.getElementById("signout")) {
+    const a = document.createElement("a");
+    a.id = "signout"; a.href = "/logout"; a.className = "btn"; a.textContent = "Sign out";
+    document.querySelector(".topbar").appendChild(a);
+    if (s.retention_days) {
+      const note = document.createElement("p");
+      note.className = "empty-hist"; note.style.marginTop = "auto";
+      note.textContent = `Files are deleted automatically after ${s.retention_days} days.`;
+      document.querySelector(".sidebar").appendChild(note);
+    }
+  }
+  if (current) route();
+}
+
+function jobState(j) {
+  if (j.status === "running") return ["Working", "neutral"];
+  if (j.status === "error") return ["Error", "bad"];
+  return j.applied ? ["Finished", "ok"] : ["Ready to review", "warn"];
+}
+
+async function loadHistory() {
+  jobsCache = await api("/api/jobs");
+  renderHistory();
+}
+function renderHistory() {
+  const q = $("#search").value.trim().toLowerCase();
+  const list = jobsCache.filter(j => !q || j.name.toLowerCase().includes(q));
+  $("#hist").innerHTML = list.length ? list.map(j => {
+    const [label, cls] = jobState(j);
+    const when = new Date(j.started * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    return `<li><a href="#${esc(j.id)}" ${j.id === current ? 'aria-current="page"' : ""}>
+      <span class="name">${esc(j.name)}</span>
+      <span class="sub"><span>${esc(when)}</span><span class="badge ${cls}">${label}</span></span></a></li>`;
+  }).join("") : `<li class="empty-hist">${q ? "No matches" : "Documents you remediate appear here"}</li>`;
+}
+$("#search").addEventListener("input", renderHistory);
+$("#new-doc").addEventListener("click", () => { if (location.hash) location.hash = ""; else showHome(); });
+
+// ---------------------------------------------------------------- home
+function showHome() {
+  current = null; clearTimeout(poll); bar.hidden = true; renderHistory();
+  view.innerHTML = `
+    <section class="card hero" aria-labelledby="home-h">
+      <h1 id="home-h">Remediate a PDF</h1>
+      <p class="lead">Drop a PDF and the tool fixes tags, headings, tables, links, fonts and alt text, then checks the result against PDF/UA.</p>
+      <div class="drop" id="drop" role="button" tabindex="0" aria-describedby="drop-help">
+        ${ICON.upload}
+        <strong>Drop a PDF here</strong>
+        <span id="drop-help">Untagged PDFs are tagged automatically. For best results, AutoTag in Acrobat first.</span><br>
+        <span class="btn">Choose a file</span>
+      </div>
+      <div class="opts">
+        <label class="toggle"><input type="checkbox" id="ai" ${prefs.ai === false ? "" : "checked"}>
+          <span>Use Claude<small>Alt text, titles, heading review, table summaries</small></span></label>
+        <label class="toggle"><input type="checkbox" id="learn" ${prefs.learn === false ? "" : "checked"}>
+          <span>Learn from my decisions<small>Turn off for confidential files</small></span></label>
+      </div>
+    </section>
+    <div class="steps">
+      <div class="card step"><div class="n">1</div><b>AutoTag (optional)</b><span>In Acrobat, or let the tool tag it</span></div>
+      <div class="card step"><div class="n">2</div><b>Drop the PDF</b><span>Most files take 20 to 60 seconds</span></div>
+      <div class="card step"><div class="n">3</div><b>Review</b><span>Accept, reject or edit each suggestion</span></div>
+      <div class="card step"><div class="n">4</div><b>Download</b><span>Then a final check in PAC</span></div>
+    </div>`;
+  const drop = $("#drop");
+  drop.addEventListener("click", () => $("#file").click());
+  drop.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#file").click(); } });
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
+  $("#ai").addEventListener("change", e => { prefs.ai = e.target.checked; savePrefs(); });
+  $("#learn").addEventListener("change", e => { prefs.learn = e.target.checked; savePrefs(); });
+}
+$("#file").addEventListener("change", () => { const f = $("#file").files[0]; if (f) upload(f); $("#file").value = ""; });
+document.addEventListener("dragover", e => e.preventDefault());
+document.addEventListener("drop", e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) upload(f); });
+
+async function upload(f) {
+  if (!f.name.toLowerCase().endsWith(".pdf")) { toastNotice("That file isn't a PDF.", "bad"); return; }
+  const fd = new FormData();
+  fd.append("file", f);
+  fd.append("ai", prefs.ai === false ? "0" : "1");
+  showWorking(f.name, 0);
+  try {
+    const { id } = await api("/api/jobs", { method: "POST", body: fd, headers: H });
+    location.hash = id;
+  } catch (e) { toastNotice("Upload failed: " + e.message, "bad"); }
+}
+function toastNotice(msg, kind) {
+  const n = document.createElement("div");
+  n.className = `notice ${kind}`; n.setAttribute("role", "alert"); n.innerHTML = ICON.alert + `<div>${esc(msg)}</div>`;
+  view.prepend(n);
+}
+
+// ---------------------------------------------------------------- working
+function showWorking(name, secs) {
+  bar.hidden = true;
+  view.innerHTML = `<section class="card working">
+    <div class="spinner" aria-hidden="true"></div>
+    <h1 style="font-size:20px;margin:0 0 4px">Remediating ${esc(name)}</h1>
+    <p style="color:var(--muted);margin:0">${secs ? `${secs} seconds so far. ` : ""}Usually 20 to 60 seconds. With Claude on, each figure takes a few seconds.</p>
+    <div class="bar" aria-hidden="true"><i></i></div>
+  </section>`;
+}
+
+// ---------------------------------------------------------------- job
+window.addEventListener("hashchange", route);
+function route() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (id) openJob(id); else showHome();
+}
+
+async function openJob(id) {
+  if (id !== current) state = { tab: "review", filter: "all" };
+  current = id; clearTimeout(poll); renderHistory();
+  let data;
+  try { data = await api(`/api/jobs/${encodeURIComponent(id)}`); }
+  catch { view.innerHTML = `<div class="card empty">Couldn't find that document.</div>`; bar.hidden = true; return; }
+  const j = data.job;
+  if (j.status === "running") {
+    showWorking(j.name, Math.round(Date.now() / 1000 - j.started));
+    poll = setTimeout(() => openJob(id), 2000);
+    return;
+  }
+  loadHistory();
+  if (j.status === "error") {
+    bar.hidden = true;
+    view.innerHTML = `<div class="notice bad" role="alert">${ICON.alert}<div><b>Something went wrong.</b><br>${esc(j.error)}</div></div>`;
+    return;
+  }
+  renderJob(j, data.report, data.review);
+}
+
+const LABEL = { alt: "Alt text", title: "Document title", summary: "Table summary", level: "Heading level",
+  promote: "Heading level", demote: "Change to" };
+
+function editor(item) {
+  const id = `v-${item.id}`;
+  if (["alt", "title", "summary"].includes(item.field))
+    return `<div class="field"><label for="${id}">${LABEL[item.field]}</label><textarea id="${id}" data-value>${esc(item.value)}</textarea></div>`;
+  if (item.field === "level" || item.field === "promote") {
+    const cur = String(item.value).replace("H", "");
+    const opts = [1, 2, 3, 4, 5, 6].map(n => `<option value="${item.field === "level" ? n : "H" + n}" ${String(n) === cur ? "selected" : ""}>Heading ${n}</option>`).join("");
+    return `<div class="field"><label for="${id}">${LABEL[item.field]}</label><select id="${id}" data-value>${opts}</select></div>`;
+  }
+  if (item.field === "demote") return `<div class="field"><label>${LABEL.demote}</label><span class="chip">Normal text (P)</span></div>`;
+  return "";
+}
+
+function itemCard(item, jobId) {
+  const hasImg = item.category === "figures" && item.context && item.context.page;
+  const img = hasImg ? `<div class="preview"><img src="/api/jobs/${encodeURIComponent(jobId)}/figure/${encodeURIComponent(item.id)}.png"
+      alt="The figure as it appears on page ${item.page ?? ""}" loading="lazy"></div>` : "";
+  const quote = item.category === "headings" && item.context && item.context.text
+    ? `<div class="quote">“${esc(item.context.text.slice(0, 180))}”</div>` : "";
+  const name = `d-${item.id}`;
+  const seg = ["accept", "reject", "skip"].map(d =>
+    `<label><input type="radio" name="${name}" value="${d}" ${item.decision === d ? "checked" : ""}><span>${d[0].toUpperCase() + d.slice(1)}</span></label>`).join("");
+  return `<article class="card item ${hasImg ? "with-img" : ""}" data-id="${esc(item.id)}" data-field="${esc(item.field)}" data-cat="${esc(item.category)}">
+    ${img}
+    <div>
+      <div class="top"><span class="chip">${esc(item.category)}</span>${item.page ? `<span class="chip">Page ${item.page}</span>` : ""}</div>
+      <div class="msg">${esc(item.message)}</div>${quote}
+      ${editor(item)}
+      <fieldset class="seg"><legend class="sr">Decision for: ${esc(item.message)}</legend>${seg}</fieldset>
+    </div>
+  </article>`;
+}
+
+function renderJob(j, report, review) {
+  const c = report.summary;
+  const items = (review && review.items) || [];
+  const manual = report.items.filter(i => i.severity === "error");
+  const fixed = report.items.filter(i => i.severity === "fixed");
+  const checks = report.remaining || [];
+  const untagged = manual.find(i => /not tagged|isn't tagged/.test(i.message));
+  const pdfua = c.pdfua_verapdf;
+  const verdict = pdfua === true ? ["ok", "PASS"] : pdfua === false ? ["bad", "FAIL"] : ["neutral", "Not checked"];
+
+  view.innerHTML = `
+    <div class="doc-head">
+      <div>
+        <h1>${esc(j.name)}</h1>
+        <div class="meta">${report.pages || "?"} page${report.pages === 1 ? "" : "s"} · ${j.applied ? "Decisions applied" : "Waiting for your review"}</div>
+      </div>
+      <div class="verdict ${verdict[0]}"><small>PDF/UA check</small><div class="big">${verdict[1]}</div></div>
+    </div>
+    ${j.applied ? `<div class="notice ok">${ICON.check}<div>Your decisions have been applied. Download the PDF, then give it a final check in PAC.</div></div>` : ""}
+    ${untagged ? `<div class="notice bad">${ICON.alert}<div><b>This PDF needs tags first.</b> ${esc(untagged.message)}</div></div>` : ""}
+    <div class="stats">
+      <div class="card stat ok"><b>${c.fixed}</b><span>Fixed automatically</span></div>
+      <div class="card stat ${items.length ? "warn" : "ok"}"><b>${items.length}</b><span>For you to review</span></div>
+      <div class="card stat ${manual.length ? "bad" : "ok"}"><b>${manual.length}</b><span>Manual work in Acrobat</span></div>
+      <div class="card stat ${checks.length ? "bad" : "ok"}"><b>${checks.length}</b><span>Checks still failing</span></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Results">
+      ${[["review", "Review", items.length], ["manual", "Manual work", manual.length], ["checks", "Checks", checks.length], ["fixed", "Fixed", fixed.length]]
+        .map(([k, l, n]) => `<button role="tab" id="tab-${k}" aria-controls="panel" aria-selected="${state.tab === k}" tabindex="${state.tab === k ? 0 : -1}" data-tab="${k}">${l} <span class="count">${n}</span></button>`).join("")}
+    </div>
+    <div id="panel" role="tabpanel" aria-labelledby="tab-${state.tab}"></div>`;
+
+  $$(".tabs button").forEach(b => b.addEventListener("click", () => { state.tab = b.dataset.tab; renderJob(j, report, review); $(`#tab-${state.tab}`).focus(); }));
+  $(".tabs").addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const tabs = $$(".tabs button"), i = tabs.findIndex(t => t.dataset.tab === state.tab);
+    state.tab = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].dataset.tab;
+    renderJob(j, report, review); $(`#tab-${state.tab}`).focus();
+  });
+
+  const panel = $("#panel");
+  const pageTag = p => p ? `<span class="chip">Page ${p}</span>` : "";
+  if (state.tab === "review") {
+    if (!items.length) { panel.innerHTML = `<div class="card empty">${ICON.check} Nothing needs your review.</div>`; }
+    else {
+      const cats = [...new Set(items.map(i => i.category))];
+      panel.innerHTML = `<div class="filters" role="group" aria-label="Filter by type">
+          ${["all", ...cats].map(k => `<button aria-pressed="${state.filter === k}" data-filter="${esc(k)}">${k === "all" ? "All" : esc(k)} <span class="count">${k === "all" ? items.length : items.filter(i => i.category === k).length}</span></button>`).join("")}
+        </div>` + cats.filter(k => state.filter === "all" || state.filter === k).map(k => `
+        <section class="group" aria-labelledby="g-${esc(k)}">
+          <div class="group-head"><h3 id="g-${esc(k)}">${esc(k)}</h3><span class="count">${items.filter(i => i.category === k).length}</span>
+            <span class="spacer"></span>
+            ${j.applied ? "" : `<button class="ghost" data-all="accept" data-cat="${esc(k)}">Accept all</button><button class="ghost" data-all="skip" data-cat="${esc(k)}">Skip all</button>`}
+          </div>
+          ${items.filter(i => i.category === k).map(i => itemCard(i, j.id)).join("")}
+        </section>`).join("");
+      $$(".filters button").forEach(b => b.addEventListener("click", () => { state.filter = b.dataset.filter; renderJob(j, report, review); }));
+      $$("[data-all]").forEach(b => b.addEventListener("click", () => {
+        $$(`.item[data-cat="${CSS.escape(b.dataset.cat)}"] input[value="${b.dataset.all}"]`).forEach(r => r.checked = true);
+        updateSummary();
+      }));
+      const grow = t => { t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; };
+      $$("textarea[data-value]").forEach(grow);  // show the whole alt text / summary, no inner scrolling
+      $$("[data-value]").forEach(el => el.addEventListener("input", () => {
+        if (el.tagName === "TEXTAREA") grow(el);
+        const r = el.closest(".item").querySelector('input[value="accept"]'); if (r) r.checked = true; updateSummary();
+      }));
+      $$(".seg input").forEach(r => r.addEventListener("change", updateSummary));
+    }
+  } else if (state.tab === "manual") {
+    panel.innerHTML = manual.length ? `<ul class="card list">${manual.map(i => `<li>${pageTag(i.page)}<span>${esc(i.message)}</span></li>`).join("")}</ul>`
+      : `<div class="card empty">${ICON.check} No manual work needed.</div>`;
+  } else if (state.tab === "checks") {
+    panel.innerHTML = checks.length ? `<ul class="card list">${checks.map(r => `<li>${pageTag(r.page)}<span class="chip">${esc(r.category)}</span><span>${esc(r.message)}</span></li>`).join("")}</ul>`
+      : `<div class="card empty">${ICON.check} Every automated check passes.</div>`;
+  } else {
+    panel.innerHTML = fixed.length ? `<ul class="card list">${fixed.map(i => `<li>${ICON.check}${pageTag(i.page)}<span>${esc(i.message)}</span></li>`).join("")}</ul>`
+      : `<div class="card empty">Nothing was changed automatically.</div>`;
+  }
+
+  bar.hidden = false;
+  const reviewable = items.length && !j.applied;
+  bar.innerHTML = `
+    <span class="summary" id="dec-summary" aria-live="polite"></span>
+    ${reviewable ? `<button class="primary" id="apply">${ICON.check}Apply my decisions</button>` : ""}
+    <a class="btn ${reviewable ? "" : "primary"}" href="/api/jobs/${encodeURIComponent(j.id)}/download/pdf">${ICON.down}Download PDF</a>
+    <a class="btn" href="/api/jobs/${encodeURIComponent(j.id)}/download/report" target="_blank" rel="noopener">${ICON.doc}Full report</a>
+    ${hosted ? "" : `<button id="folder">${ICON.folder}Open folder</button>`}`;
+  if ($("#folder")) $("#folder").onclick = () => api(`/api/jobs/${encodeURIComponent(j.id)}/open-folder`, { method: "POST", headers: H });
+  if ($("#apply")) $("#apply").onclick = () => applyDecisions(j.id, $("#apply"), items);
+  updateSummary();
+}
+
+function updateSummary() {
+  const el = $("#dec-summary"); if (!el) return;
+  const cards = $$("#panel .item");
+  if (!cards.length) { el.textContent = ""; return; }
+  const n = { accept: 0, reject: 0, skip: 0 };
+  cards.forEach(c => { const v = c.querySelector("input[type=radio]:checked")?.value || "skip"; n[v]++; });
+  el.textContent = `${n.accept} accepted · ${n.reject} rejected · ${n.skip} skipped`;
+}
+
+async function applyDecisions(id, btn, allItems) {
+  btn.disabled = true; btn.textContent = "Applying…";
+  // decisions from the cards on screen; items hidden by a filter keep their current choice
+  const shown = new Map($$("#panel .item").map(el => [el.dataset.id, el]));
+  const items = allItems.map(i => {
+    const el = shown.get(i.id);
+    if (!el) return { id: i.id, decision: i.decision };
+    const v = el.querySelector("[data-value]");
+    const out = { id: i.id, decision: el.querySelector("input[type=radio]:checked")?.value || "skip" };
+    if (v) out.value = el.dataset.field === "level" ? Number(v.value) : v.value;
+    return out;
+  });
+  try {
+    await api(`/api/jobs/${encodeURIComponent(id)}/apply`, {
+      method: "POST", headers: { ...H, "Content-Type": "application/json" },
+      body: JSON.stringify({ items, learn: prefs.learn !== false }) });
+    state.tab = "review"; openJob(id);
+  } catch (e) { btn.disabled = false; btn.textContent = "Apply my decisions"; toastNotice("Couldn't apply: " + e.message, "bad"); }
+}
+
+loadStatus(); loadHistory(); route();
+</script>
+</body>
+</html>
