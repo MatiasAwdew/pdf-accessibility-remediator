@@ -1,8 +1,28 @@
-# pdf-remediator
+# PDF Accessibility Remediator
 
-A PDF accessibility remediation assistant. It tags the PDF with Adobe's AutoTag
-API if needed, then does the repetitive Acrobat work automatically. Only the
-decisions that need a human are left for you.
+Automates the repetitive part of making PDFs accessible (PDF/UA-1, WCAG 2.1 AA,
+Section 508) and leaves only the judgment calls for a person to review.
+
+**What it does**
+- Tags untagged PDFs (Adobe AutoTag API, or a built-in local tagger) and repairs existing tag trees:
+  heading levels, lists, tables (TH/TD, scope, summaries, split tables), links, annotations, artifacts
+- Writes figure alt text, document titles and table summaries with the Claude API, learning from
+  the reviewer's past corrections (few-shot examples)
+- Embeds missing fonts (subset TrueType with widths and ToUnicode), fixes metadata, language,
+  tab order and bookmarks
+- Validates every output against PDF/UA-1 with **veraPDF** and automatically fixes common failures,
+  re-validating until it passes or reporting exactly what's left
+- Runs as a drag-and-drop web app (local, or hosted with Docker and a password login) or as a CLI
+
+**Results**
+- Held-out set of public government and college PDFs: 3 of 3 pass veraPDF PDF/UA-1
+- Real agency documents remediated with it pass the Acrobat Accessibility Checker and PAC
+- 54 automated tests
+
+**Built with** Python, pikepdf, pdfplumber, PyMuPDF, fontTools, Flask, the Claude API,
+the Adobe PDF Services API, veraPDF, Docker
+
+## Quick start
 
 ```
 python remediate.py report.pdf
@@ -19,20 +39,18 @@ produces
 
 ## Easiest way: the app
 
-Double-click **PDF Remediator** on the desktop (or run `python remediate.py app`).
-It opens in your browser:
+Run `python remediate.py app` (or use the desktop shortcut). It opens in your browser:
 
-1. AutoTag the PDF in Acrobat and save it.
-2. Drag it onto the page, or onto the desktop icon.
-3. Review the cards. Each figure shows a preview next to its alt text. For each card, choose
+1. Drag a PDF onto the page. Untagged files are tagged automatically.
+2. Review the cards. Each figure shows a preview next to its alt text. For each card, choose
    Accept, Reject or Skip, or edit the text.
-4. Click **Apply my decisions**, then **Download PDF**.
-5. Finish with Preflight (embed fonts) and PAC.
+3. Click **Apply my decisions**, then **Download PDF**. The PDF/UA result is shown on the page.
+4. Spot-check in PAC.
 
 Everything runs on this computer. The app listens only on `127.0.0.1`, and jobs
 are kept in `Documents\PDF Remediator`. The only thing that leaves the machine is
 the Claude calls (untick "Use Claude" for confidential files). If you have
-problems, check `Documents\PDF Remediatorpp.log`.
+problems, check `Documents\PDF Remediator\app.log`.
 
 To recreate the desktop shortcut: target `pythonw.exe -m remediator.app`, and set
 "Start in" to the project folder.
@@ -242,8 +260,6 @@ tests/           synthetic "post-AutoTag" PDF with every known problem + pytest
 - A link is wrapped at the marked-content level. If AutoTag put a whole line into
   one MCID, the `<Link>` covers that whole line (it's still valid for PAC).
   Splitting content streams is on the roadmap.
-- Decorative figures are flagged, not converted to Artifacts, because that
-  needs a content-stream rewrite.
 - Acrobat Pro's AutoTag and Preflight can't be scripted: AutoTag isn't exposed to Acrobat JavaScript or COM, and Preflight isn't available to scripts. Tested on Acrobat 2026, where Acrobat did accept COM calls. To tag many files at once, use Acrobat's Action Wizard, or the Adobe AutoTag API.
 - Symbol, ZapfDingbats and composite (CID) fonts that aren't embedded are only reported. Use Acrobat Preflight for those.
 - Forms (Widget annotations) are only checked, not fixed.
@@ -252,10 +268,7 @@ tests/           synthetic "post-AutoTag" PDF with every known problem + pytest
 
 ## Roadmap
 
-1. ~~Adobe AutoTag API~~ (done)
-2. **Desktop UI** (Tauri or Electron + React) around this engine: page preview, click a figure and edit its alt text, a table grid editor for TH/TD
-3. ~~Learning from your corrections~~ (done, as few-shot examples). Once there are a few hundred decisions, use them to tune the thresholds automatically or train a small heading classifier
-4. **Content-stream splitting** for precise link tags and figure → artifact conversion
-5. **veraPDF** in `check` for full PDF/UA-1 machine validation, so you only need PAC for spot checks
-6. **Watch folder**: drop PDFs into `inbox/` and get remediated files and reports in `outbox/`
-7. **Per-page time log** to measure your effective $/hour on each contract
+1. **Content-stream splitting** for precise link tags when one marked-content block holds a whole line
+2. **Table grid editor** in the app for fixing TH/TD by hand
+3. **Watch folder**: drop PDFs into `inbox/` and get remediated files and reports in `outbox/`
+4. Tune thresholds automatically from accumulated review decisions
