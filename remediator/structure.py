@@ -20,7 +20,7 @@ from typing import Iterator
 import pikepdf
 from pikepdf import Array, Dictionary, Name
 
-# Standard structure types of PDF 1.7 (ISO 32000-1), which PDF/UA-1 and PAC 3 check
+# Standard structure types of PDF 1.7 (ISO 32000-1), which PDF/UA-1 and PAC check
 # against. Anything else must be role-mapped to one of these.
 STANDARD_TYPES = {
     "Document", "Part", "Art", "Sect", "Div", "BlockQuote", "Caption", "TOC", "TOCI",

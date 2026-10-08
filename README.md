@@ -51,12 +51,12 @@ The same app can run as a private, password-protected website. See **[DEPLOY.md]
 | Figure alt text | Claude writes alt text from a render of the figure and its surrounding text. Tiny/decorative figures and empty Figure tags are flagged |
 | Link alt text / "link element missing" | Fills link `Contents` from the URL or destination page. Builds `<Link>` tags (link text + OBJR) for annotations outside the tag tree |
 | TH / TD / Scope / regularity | Promotes the first row to TH if the table has no headers, sets Scope, flags irregular tables and tables with no TD cells |
-| Table summary | Generated from the size and header text |
+| Table summary | Claude writes a short summary of what each table shows. Tables split across pages are detected, and each piece is labeled as a continuation |
 | Bookmarks | Built from the corrected headings (H1 to H3, nested), each one jumping to its heading. Existing bookmarks are kept |
 | Preflight: embed fonts | Missing fonts (Times, Helvetica, Courier, Arial, Times New Roman) are embedded from your Windows fonts, subset to the characters used, with matching widths and a ToUnicode map. AutoTag's invisible Times-Roman spaces fail this on nearly every file |
 | Show title | Sets the title (from the first H1 if it's missing or is a file name), and sets DisplayDocTitle |
 | Preflight fixups | Language, MarkInfo, PDF/UA id, tab order, wrapping a lone Document root, removing empty tags, LI/LBody repair, marking untagged lines/shapes as Artifacts |
-| PAC 3 | **Still PAC** as the final check. The report tells you what will fail before you open it |
+| PAC | Every output is validated against PDF/UA-1 with **veraPDF** (the Matterhorn checks PAC runs), and common failures are fixed automatically. PAC stays the final sign-off |
 
 ## Setup
 
