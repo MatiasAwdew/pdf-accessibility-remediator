@@ -41,9 +41,9 @@ before downloading the final file.
 | Sample report in this repo, Word version | Fails 9 checks before; passes Word's checker rules + HHS 508 after |
 | Sample report in this repo, untagged PDF | Fails 11 PDF/UA checks before; passes veraPDF PDF/UA-1 after |
 | 25 unusual Word test files (Apache POI test suite: forms, charts, nested tables, old Word formats) | 21 of 25 pass both standards, 0 crashes; the other 4 need a person to rebuild their layout, and the tool says why |
-| 14-file synthetic benchmark (untagged, scanned, complex table, forms, long, Word, broken files), with Claude | 11 processed, 3 broken files refused with a reason, 0 crashes; 8 of 11 pass every automated check; failing checks 89 before, 12 after |
+| 14-file synthetic benchmark (untagged, scanned, complex table, forms, long, Word, broken files), with Claude | 11 processed, 3 broken files refused with a reason, 0 crashes; 9 of 11 pass every automated check; failing checks 89 before, 8 after |
 | Real documents I remediated with it | Pass the Acrobat Accessibility Checker and PAC 2026 |
-| Automated tests | 121 |
+| Automated tests | 126 |
 
 Try it yourself: [`samples/`](samples) has the sample report before and after, as a Word file and as a PDF.
 Open them in Word (Review > Check Accessibility), Acrobat, or PAC.
