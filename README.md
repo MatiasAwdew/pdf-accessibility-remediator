@@ -41,13 +41,32 @@ before downloading the final file.
 | Sample report in this repo, Word version | Fails 9 checks before; passes Word's checker rules + HHS 508 after |
 | Sample report in this repo, untagged PDF | Fails 11 PDF/UA checks before; passes veraPDF PDF/UA-1 after |
 | 25 unusual Word test files (Apache POI test suite: forms, charts, nested tables, old Word formats) | 21 of 25 pass both standards, 0 crashes; the other 4 need a person to rebuild their layout, and the tool says why |
+| 14-file synthetic benchmark (untagged, scanned, complex table, forms, long, Word, broken files), with Claude | 11 processed, 3 broken files refused with a reason, 0 crashes; 8 of 11 pass every automated check; failing checks 89 before, 12 after |
 | Real documents I remediated with it | Pass the Acrobat Accessibility Checker and PAC 2026 |
-| Automated tests | 89 |
+| Automated tests | 121 |
 
 Try it yourself: [`samples/`](samples) has the sample report before and after, as a Word file and as a PDF.
 Open them in Word (Review > Check Accessibility), Acrobat, or PAC.
 
 ![Page 1 of the sample report](images/sample-page.png)
+
+## How results are checked
+
+Every file goes through four layers, and the report keeps them apart:
+
+1. **The tool's own checks**: structure that can be decided mechanically (alt text present,
+   heading order, table headers, tagged links and form fields, consistent tag tree)
+2. **An independent validator**: veraPDF for PDF/UA-1; Microsoft Word's own Accessibility
+   Checker for Word files
+3. **Content integrity**: the output is compared with the original (every page, word, link and
+   picture, and the rendered look); a scanned page with no real text fails
+4. **A person**: every AI or heuristic decision is a reviewable proposal, and every report ends
+   with a WCAG-referenced checklist of what software can't judge (reading order, alt-text
+   accuracy, table meaning, color-only information)
+
+A result is reported as "passes automated checks", never as "compliant". The benchmark
+shows why: a table with a two-row header passes every automated check while its headers
+are wrong, so the tool flags it for a person instead.
 
 ## How it works
 
