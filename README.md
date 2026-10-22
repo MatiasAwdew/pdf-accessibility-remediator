@@ -1,11 +1,15 @@
 # Document Accessibility Remediator
 
-A tool I built that makes PDFs and Word documents accessible (Section 508, WCAG 2.1 AA, PDF/UA-1).
-It fixes the repetitive problems automatically, writes alt text and table descriptions with AI, and
-leaves only the judgment calls for a person to review.
+A tool I built that makes PDFs and Word documents accessible (Section 508, WCAG 2.1/2.2 AA,
+PDF/UA-1). It fixes the repetitive problems automatically, writes alt text and table descriptions
+with AI, and leaves only the judgment calls for a person to review.
+
+**At a glance:** automated accessibility failures cut by 91% across 35 real public documents
+(396 pages) · about a minute per document · every AI decision approved by a person · 130+
+automated tests
 
 *The source code is private. This page shows what the tool does and the results. I'm happy to walk
-through the code or give a live demo; message me here on GitHub or on LinkedIn.*
+through the code or give a live demo: reach me on [LinkedIn](https://www.linkedin.com/in/matiasawdew).*
 
 ## Demo
 
@@ -18,18 +22,17 @@ failing checks and comes out passing PAC 2026 and the Acrobat Accessibility Chec
 
 ![The tool's review screen: 9 problems fixed automatically, 12 AI suggestions for a person to review, 0 needing manual work, failing checks 55 before and 2 after (the last 2 clear once the reviewer approves). Below, a bar chart with the alt text Claude wrote for it.](images/review-screen.png)
 
-![Before and after: a sample report fails 9 Word checks and 11 PDF/UA checks before, and passes all of them after](images/before-after.png)
-
 ## What it does
 
 **PDFs**
-- Tags untagged PDFs (with OCR for scanned pages) and repairs existing tag trees: headings, lists, tables (header cells, scope,
-  summaries), links, reading order, artifacts
+- Tags untagged PDFs (with OCR for scanned pages) and repairs existing tag trees: headings,
+  lists, tables (header cells, scope, summaries), links, reading order, artifacts
+- Rebuilds complex tables with multi-row headers (column and row spans, header-to-cell links)
+- Fixes fillable forms: field descriptions for screen readers, tab order, embedded fonts
 - Writes figure alt text, document titles and table summaries with Claude API, and learns from
   the reviewer's past corrections
 - Fixes fonts, metadata, language, contrast, bookmarks and tab order
-- Validates every file with veraPDF (PDF/UA-1) and keeps fixing until it passes, or reports exactly
-  what is left
+- Validates every file with veraPDF (PDF/UA-1) and reports exactly what is left
 
 **Word documents (.docx)**
 - Turns bold "fake" headings into real heading styles, typed bullets into real lists, and
@@ -51,14 +54,16 @@ before downloading the final file.
 |---|---|
 | **35 real public documents** (396 pages: agendas, county reports, IRS forms) | Automated accessibility failures cut by 91% (1,386 -> 123), typically about a minute per document, 0 crashes, no lost content |
 | Demo report (9 pages, auto-tagged by Acrobat) | 55 failing checks before; passes PAC 2026 and the Acrobat Accessibility Checker after review |
-| Sample report in this repo, Word version | Fails 9 checks before; passes Word's checker rules + HHS 508 after |
-| Sample report in this repo, untagged PDF | Fails 11 PDF/UA checks before; passes veraPDF PDF/UA-1 after |
+| Sample report, Word version | Fails 9 checks before; passes Word's checker rules + HHS 508 after |
+| Sample report, untagged PDF | Fails 11 PDF/UA checks before; passes veraPDF PDF/UA-1 after |
 | Unusual Word files (Apache POI test suite: forms, charts, nested tables, old Word formats) | 0 crashes; anything that needs a person is flagged with the reason |
 | Synthetic stress test (untagged, scanned, complex tables, forms, broken files) | Failing checks cut by 91% (89 -> 8); broken files refused with a clear reason, 0 crashes |
 | Real documents I remediated with it | Pass the Acrobat Accessibility Checker and PAC 2026 |
 | Automated tests | 130+ |
 
-Try it yourself: [`samples/`](samples) has before and after files you can open in Acrobat, PAC, or Word
+## Try it yourself
+
+[`samples/`](samples) has before and after files you can open in Acrobat, PAC, or Word
 (Review > Check Accessibility):
 
 - **Demo report** (the one in the video): [before](samples/lakeview-annual-report-2025.pdf) (9 pages,
@@ -67,7 +72,7 @@ Try it yourself: [`samples/`](samples) has before and after files you can open i
   [after](samples/sample-annual-report-a11y.docx)) and as an untagged PDF
   ([before](samples/sample-annual-report.pdf), [after](samples/sample-annual-report-a11y.pdf))
 
-![Page 1 of the sample report](images/sample-page.png)
+![Before and after: the sample report fails 9 Word checks and 11 PDF/UA checks before, and passes all of them after](images/before-after.png)
 
 ## How results are checked
 
@@ -83,9 +88,26 @@ Every file goes through four layers, and the report keeps them apart:
    with a WCAG-referenced checklist of what software can't judge (reading order, alt-text
    accuracy, table meaning, color-only information)
 
-A result is reported as "passes automated checks", never as "compliant". The benchmark
-shows why: a table with a two-row header passes every automated check while its headers
-are wrong, so the tool flags it for a person instead.
+A result is reported as "passes automated checks", never as "compliant". Automated checks
+can't tell whether alt text is accurate or whether table headers mean the right thing, so the
+tool flags those for a person instead.
+
+## Engineering highlights
+
+- **Catching what validators miss.** Testing on real documents showed that text a screen
+  reader hears could run words together ("CALIFORNIALEGISLATURE") while the file still passed
+  veraPDF. I fixed the cause and added a check that compares what a screen reader hears with
+  the visible text on every file.
+- **Complex tables.** Tables with multi-row headers are rebuilt with column and row spans and
+  explicit header-to-cell links, so a screen reader announces the right headers for each cell.
+- **Government forms.** For fillable forms like IRS forms, field descriptions are pulled from
+  the form's own data, and checkbox symbols are redrawn so every font is embedded.
+- **Scanned pages.** Local OCR (Tesseract) adds a searchable, screen-readable text layer and
+  flags low-confidence words for review.
+- **Speed and reliability.** AI requests run in parallel, and if the connection drops the
+  tool stops cleanly instead of failing every figure.
+- **An accessible app.** The web app itself is built to WCAG 2.2 AA and tested with axe-core,
+  keyboard-only use, and the NVDA screen reader.
 
 ## How it works
 
@@ -103,3 +125,4 @@ Accessibility Checker).
 ---
 
 Built by Matias Awdew. The sample and demo reports are fictional.
+© 2026 Matias Awdew. All rights reserved.
