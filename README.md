@@ -90,8 +90,8 @@ are wrong, so the tool flags it for a person instead.
 
 ## Built with
 
-Python, pikepdf, pdfplumber, PyMuPDF, fontTools, python-docx / lxml, Flask, the Claude API,
-the Adobe PDF Services API, veraPDF, Tesseract OCR, Docker, and Windows UI Automation (to run Word's own
+Python, pikepdf, pdfplumber, PyMuPDF, fontTools, python-docx / lxml, Flask,
+veraPDF, Tesseract OCR, Docker, and Windows UI Automation (to run Word's own
 Accessibility Checker).
 
 ---
