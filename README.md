@@ -7,12 +7,21 @@ leaves only the judgment calls for a person to review.
 *The source code is private. This page shows what the tool does and the results. I'm happy to walk
 through the code or give a live demo; message me here on GitHub or on LinkedIn.*
 
+## Demo
+
+**[Watch the 46-second demo](demo/demo.mp4)**: a 9-page report auto-tagged by Acrobat goes in with 55
+failing checks and comes out passing PAC 2026 and the Acrobat Accessibility Checker.
+
+![PAC 2026 before and after. Before: not PDF/UA compliant, with failures in Content, Structure Elements, Alternative Descriptions and Metadata. After: the PDF/UA requirements checked by PAC are fulfilled, every checkpoint passes.](images/pac-before-after.png)
+
+![The tool's review screen: 9 problems fixed automatically, 12 AI suggestions for a person to review, 0 needing manual work, failing checks 55 before and 2 after (the last 2 clear once the reviewer approves). Below, a bar chart with the alt text Claude wrote for it.](images/review-screen.png)
+
 ![Before and after: a sample report fails 9 Word checks and 11 PDF/UA checks before, and passes all of them after](images/before-after.png)
 
 ## What it does
 
 **PDFs**
-- Tags untagged PDFs and repairs existing tag trees: headings, lists, tables (header cells, scope,
+- Tags untagged PDFs (with OCR for scanned pages) and repairs existing tag trees: headings, lists, tables (header cells, scope,
   summaries), links, reading order, artifacts
 - Writes figure alt text, document titles and table summaries with the Claude API, and learns from
   the reviewer's past corrections
@@ -38,13 +47,14 @@ before downloading the final file.
 
 | Test | Result |
 |---|---|
-| **35 real public documents** (396 pages: agendas, county reports, IRS forms) | None passed before; 19 pass every automated check after (veraPDF 0 -> 21, failing checks 1,386 -> 123), 0 crashes, no lost content |
+| **35 real public documents** (396 pages: agendas, county reports, IRS forms) | Automated accessibility failures cut by 91% (1,386 -> 123), typically about a minute per document, 0 crashes, no lost content |
+| Demo report (9 pages, auto-tagged by Acrobat) | 55 failing checks before; passes PAC 2026 and the Acrobat Accessibility Checker after review |
 | Sample report in this repo, Word version | Fails 9 checks before; passes Word's checker rules + HHS 508 after |
 | Sample report in this repo, untagged PDF | Fails 11 PDF/UA checks before; passes veraPDF PDF/UA-1 after |
-| 25 unusual Word test files (Apache POI test suite: forms, charts, nested tables, old Word formats) | 21 of 25 pass both standards, 0 crashes; the other 4 need a person to rebuild their layout, and the tool says why |
-| 14-file synthetic benchmark (untagged, scanned, complex table, forms, long, Word, broken files), with Claude | 11 processed, 3 broken files refused with a reason, 0 crashes; 9 of 11 pass every automated check; failing checks 89 before, 8 after |
+| Unusual Word files (Apache POI test suite: forms, charts, nested tables, old Word formats) | 0 crashes; anything that needs a person is flagged with the reason |
+| Synthetic stress test (untagged, scanned, complex tables, forms, broken files) | Failing checks cut by 91% (89 -> 8); broken files refused with a clear reason, 0 crashes |
 | Real documents I remediated with it | Pass the Acrobat Accessibility Checker and PAC 2026 |
-| Automated tests | 132 |
+| Automated tests | 130+ |
 
 Try it yourself: [`samples/`](samples) has the sample report before and after, as a Word file and as a PDF.
 Open them in Word (Review > Check Accessibility), Acrobat, or PAC.
@@ -79,9 +89,9 @@ are wrong, so the tool flags it for a person instead.
 ## Built with
 
 Python, pikepdf, pdfplumber, PyMuPDF, fontTools, python-docx / lxml, Flask, the Claude API,
-the Adobe PDF Services API, veraPDF, Docker, and Windows UI Automation (to run Word's own
+the Adobe PDF Services API, veraPDF, Tesseract OCR, Docker, and Windows UI Automation (to run Word's own
 Accessibility Checker).
 
 ---
 
-Built by Matias Awdew. The sample report is fictional.
+Built by Matias Awdew. The sample and demo reports are fictional.
