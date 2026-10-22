@@ -9,7 +9,9 @@ through the code or give a live demo; message me here on GitHub or on LinkedIn.*
 
 ## Demo
 
-**[Watch the 46-second demo](demo/demo.mp4)**: a 9-page report auto-tagged by Acrobat goes in with 55
+https://github.com/user-attachments/assets/ae6c6dd0-5ba3-4505-9481-144f5c6e0f65
+
+**46-second demo:** a 9-page report auto-tagged by Acrobat goes in with 55
 failing checks and comes out passing PAC 2026 and the Acrobat Accessibility Checker.
 
 ![PAC 2026 before and after. Before: not PDF/UA compliant, with failures in Content, Structure Elements, Alternative Descriptions and Metadata. After: the PDF/UA requirements checked by PAC are fulfilled, every checkpoint passes.](images/pac-before-after.png)
