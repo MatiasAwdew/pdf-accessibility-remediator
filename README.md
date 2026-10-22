@@ -58,8 +58,14 @@ before downloading the final file.
 | Real documents I remediated with it | Pass the Acrobat Accessibility Checker and PAC 2026 |
 | Automated tests | 130+ |
 
-Try it yourself: [`samples/`](samples) has the sample report before and after, as a Word file and as a PDF.
-Open them in Word (Review > Check Accessibility), Acrobat, or PAC.
+Try it yourself: [`samples/`](samples) has before and after files you can open in Acrobat, PAC, or Word
+(Review > Check Accessibility):
+
+- **Demo report** (the one in the video): [before](samples/lakeview-annual-report-2025.pdf) (9 pages,
+  auto-tagged by Acrobat) and [after](samples/lakeview-annual-report-2025-a11y.pdf)
+- **Sample report**, as a Word file ([before](samples/sample-annual-report.docx),
+  [after](samples/sample-annual-report-a11y.docx)) and as an untagged PDF
+  ([before](samples/sample-annual-report.pdf), [after](samples/sample-annual-report-a11y.pdf))
 
 ![Page 1 of the sample report](images/sample-page.png)
 
