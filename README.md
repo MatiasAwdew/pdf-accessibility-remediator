@@ -25,7 +25,7 @@ failing checks and comes out passing PAC 2026 and the Acrobat Accessibility Chec
 **PDFs**
 - Tags untagged PDFs (with OCR for scanned pages) and repairs existing tag trees: headings, lists, tables (header cells, scope,
   summaries), links, reading order, artifacts
-- Writes figure alt text, document titles and table summaries with the Claude API, and learns from
+- Writes figure alt text, document titles and table summaries with Claude API, and learns from
   the reviewer's past corrections
 - Fixes fonts, metadata, language, contrast, bookmarks and tab order
 - Validates every file with veraPDF (PDF/UA-1) and keeps fixing until it passes, or reports exactly
